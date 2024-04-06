@@ -216,13 +216,13 @@ G4ThreeVector Incoming_Beam::getDirection()
     exit(EXIT_FAILURE);
   }
   z=1./sqrt(1.+tan(a)*tan(a)+tan(b)*tan(b));
-  y=z*tan(b);
-  x=z*tan(a);
+  y=z*tan(a);
+  x=z*tan(b);
   direction.setX(x);
   direction.setY(y);
   direction.setZ(z);
-  direction.rotateY(ata0);
-  direction.rotateX(-bta0);
+  direction.rotateX(ata0);
+  direction.rotateY(-bta0);
   return direction;
   
 }

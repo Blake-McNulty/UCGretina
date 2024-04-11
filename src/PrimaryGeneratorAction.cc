@@ -195,19 +195,21 @@ void PrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
       G4ThreeVector mid = position
         + direction*(TC - position.getZ())/direction.getZ(); 
 
+      // The origin of the reference frame of the logical volume of the
+      // 200 mg cell is at the center of the upstream surface.
+      // The DistanceToOut() method works in this frame, so we need
+      // to shift the mid vector accordingly.
+      if(myDetector->GetTargetThickness() >= 29.0*mm)
+	mid.setZ(mid.getZ()+myDetector->GetTargetThickness()/2.0);
+      
       // Distance along current trajectory in the target volume
       TT = myDetector->GetTarget()->DistanceToOut(mid, direction)
 	+ myDetector->GetTarget()->DistanceToOut(mid, -direction);
 #else
-      // This works in general ...
       TT = myDetector->GetTarget()->DistanceToIn(position, direction);
       TT = myDetector->GetTarget()->DistanceToOut(position+TT*direction, 
 						  direction);
       TT *= direction.getZ();
-
-      // ... but this may be faster, and approximately correct for 
-      // a flat target.
-      //	  TT= myDetector->GetTargetThickness();
 
       TC=myDetector->GetTargetPos()->getZ();
       depth=TC+TT*(G4UniformRand()-0.5);

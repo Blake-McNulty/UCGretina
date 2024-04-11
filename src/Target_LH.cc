@@ -424,7 +424,7 @@ G4VPhysicalVolume* Target::Construct200mgCell(){
 			    0, 0, 0);
     G4ThreeVector USwindowPos = G4ThreeVector(0., 0.,
 					      -TargetDz-windowThickness);
-
+    USwindowPos += Pos0;
 
     G4UserLimits* window_limits= new G4UserLimits();
     window_limits->SetMaxAllowedStep(windowThickness/NStep);
@@ -444,7 +444,8 @@ G4VPhysicalVolume* Target::Construct200mgCell(){
 			    0, 0, 0);
     G4ThreeVector DSwindowPos = G4ThreeVector(0., 0., 
 					      TargetDz+windowThickness);
-
+    DSwindowPos += Pos0;
+    
     DnstreamWindow_log->SetUserLimits(window_limits);
     
     DnstreamWindow_log->SetVisAttributes(Vis2);
@@ -493,6 +494,8 @@ G4VPhysicalVolume* Target::Construct50mgCell(){
   BulgeR  = 1.59*cm;
   Target_thickness = 2*TargetDz + 2*BulgeDz;
 
+  G4ThreeVector Pos0 = *Pos;
+  
   G4Tubs* Target0 = new G4Tubs("Target0", 0., 2.0*cm, TargetDz,
 			       0., 360.*deg);
 
@@ -530,7 +533,10 @@ G4VPhysicalVolume* Target::Construct50mgCell(){
 
   Target_log->SetVisAttributes(Vis);
 
-  Target_phys = new G4PVPlacement(G4Transform3D(NoRot,*Pos),
+  G4ThreeVector TargetPos = G4ThreeVector(0., 0., -TargetDz);
+  TargetPos += Pos0;
+
+  Target_phys = new G4PVPlacement(G4Transform3D(NoRot,TargetPos),
 				  Target_log,"Target",expHall_log,false,0);
 
   // Cell windows
@@ -556,6 +562,11 @@ G4VPhysicalVolume* Target::Construct50mgCell(){
 			    0, 0, 0);
     G4ThreeVector USwindowPos = G4ThreeVector(0., 0.,
 					      -TargetDz-windowThickness);
+    USwindowPos += Pos0;
+
+    G4UserLimits* window_limits= new G4UserLimits();
+    window_limits->SetMaxAllowedStep(windowThickness/NStep);
+    UpstreamWindow_log->SetUserLimits(window_limits);
 
     UpstreamWindow_log->SetVisAttributes(Vis2);
     LHTarget->AddPlacedVolume(UpstreamWindow_log, USwindowPos, &NoRot);
@@ -571,7 +582,10 @@ G4VPhysicalVolume* Target::Construct50mgCell(){
 			    0, 0, 0);
     G4ThreeVector DSwindowPos = G4ThreeVector(0., 0., 
 					      TargetDz+windowThickness);
+    DSwindowPos += Pos0;
 
+    DnstreamWindow_log->SetUserLimits(window_limits);
+    
     DnstreamWindow_log->SetVisAttributes(Vis2);
     LHTarget->AddPlacedVolume(DnstreamWindow_log, DSwindowPos, &NoRot);
 

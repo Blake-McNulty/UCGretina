@@ -533,7 +533,7 @@ G4VPhysicalVolume* Target::Construct50mgCell(){
 
   Target_log->SetVisAttributes(Vis);
 
-  G4ThreeVector TargetPos = G4ThreeVector(0., 0., -TargetDz);
+  G4ThreeVector TargetPos = G4ThreeVector(0., 0., 0.);
   TargetPos += Pos0;
 
   Target_phys = new G4PVPlacement(G4Transform3D(NoRot,TargetPos),

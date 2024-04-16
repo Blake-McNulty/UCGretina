@@ -155,6 +155,31 @@ void SteppingAction::UserSteppingAction(const G4Step* aStep)
     }
 
   }
+  // Warn when incoming beam particles hit something other than the target.
+  if( aStep->GetTrack()->GetDefinition()->GetParticleType() == "nucleus" 
+      && ( aStep->GetTrack()->GetParentID() == 0 || eventAction->AllS800() )
+      && aStep->GetPostStepPoint()->GetStepStatus() != fWorldBoundary ){
+
+    // get the final volume of the current step
+    G4VPhysicalVolume* volume2
+      = aStep->GetPostStepPoint()->GetTouchableHandle()->GetVolume();
+    if( volume2->GetName().contains("BeamTube")
+	|| volume2->GetName().contains("BeamTee")
+	|| volume2->GetName().contains("Cell")
+	|| volume2->GetName().contains("Bar")
+	|| volume2->GetName().contains("Chamber")
+	|| volume2->GetName().contains("sled")
+	|| volume2->GetName().contains("Frame")
+	|| volume2->GetName().contains("Tape")
+	|| volume2->GetName().contains("Ring") ){
+	  G4cerr << "Warning: incoming beam has hit "
+		 << volume2->GetName()
+	         << ". Killing this track."
+		 << G4endl;
+	  aStep->GetTrack()->SetTrackStatus(fStopAndKill);
+    }
+      
+  }
   
 }
 

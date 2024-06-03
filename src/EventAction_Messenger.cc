@@ -25,6 +25,10 @@ EventAction_Messenger::EventAction_Messenger(EventAction* EA):theEventAction(EA)
   Mode2FileCmd = new G4UIcmdWithAString("/Mode2/Filename",this);
   Mode2FileCmd->SetGuidance("Mode 2 output file name");
 
+  cacheDir = new G4UIdirectory("/Experiment/Cache/");
+  cacheOutputFileCmd = new G4UIcmdWithAString("/Experiment/Cache/Output",this);
+  cacheOutputFileCmd -> SetGuidance("sets the EventAction Cache Ouput file");
+
   crmatCmd = new G4UIcmdWithAString("/Mode2/crmatFile",this);
   crmatCmd->SetGuidance("Use the crystal-frame to world-frame transformations in the specified file for Mode2 data (expected in crystal coordinates).");
 
@@ -64,6 +68,7 @@ EventAction_Messenger::~EventAction_Messenger()
   delete ThreshDECmd;
   delete Mode2Dir;
   delete Mode2FileCmd;
+  delete cacheOutputFileCmd;
   delete crmatCmd;
   delete crysCmd;
   delete coordsCmd;
@@ -90,6 +95,8 @@ void EventAction_Messenger::SetNewValue(G4UIcommand* command,G4String newValue)
     {theEventAction->SetThreshDE(ThreshDECmd->GetNewDoubleValue(newValue));}
   if( command == Mode2FileCmd )
     {theEventAction->SetMode2File(newValue);}
+  if( command ==  cacheOutputFileCmd )
+    {theEventAction->openCacheOutputFile(newValue);}
   if( command == crmatCmd )
     {theEventAction->SetCrmatFile(newValue);}
   if( command == crysCmd )

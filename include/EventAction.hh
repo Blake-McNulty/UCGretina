@@ -45,6 +45,11 @@ class EventAction : public G4UserEventAction
     void writeDecomp(long long int, G4int, G4int*, G4int*, G4int*, G4double*,
                      G4double*, G4double*, G4double*, G4double*, G4double*);
     void writeSim(long long int, EventInformation*);
+    void writeCache(TrackerIonHitsCollection*);
+    void openCacheOutputFile(G4String);
+    void closeCacheOutputFile();
+    G4bool CacheOut(){return cacheOut;}
+  std::ofstream& getCacheOutputFile(){return cacheOutputFile;}
     void openCrmatFile();
     void closeCrmatFile();
     void SetCrmatFile(G4String);
@@ -80,6 +85,9 @@ class EventAction : public G4UserEventAction
     G4bool evOut;
     G4String crmatFileName;
     G4int crmatFile;
+    G4String cacheOutputFileName;
+    std::ofstream cacheOutputFile;
+    G4bool cacheOut;
     G4String mode2FileName;
     G4int mode2file;
     G4bool mode2Out;  

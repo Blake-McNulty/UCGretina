@@ -15,6 +15,8 @@ EventAction::EventAction()
   outFileName = "";
   outDetsOnly = false;
   evOut = false;
+  cacheOutputFileName = "";
+  cacheOut = false;
   mode2FileName = "";
   mode2Out = false;
   crmatFileName = "";
@@ -585,7 +587,32 @@ void EventAction::EndOfEventAction(const G4Event* ev)
   // the output file.
 
   writeSim(timestamp, eventInfo);
+  TrackerIonHitsCollection* ionCollection 
+    = (TrackerIonHitsCollection*)(HCE->GetHC(ionCollectionID));
+  writeCache(ionCollection);
 
+}
+//---------------------------------------------------
+void EventAction::writeCache(TrackerIonHitsCollection* ionCollection){
+  // Cached event output
+  //#P.P.E. : Number of Points Per Event
+  G4int Npoints = ionCollection->entries();
+  std::ofstream outputFile("s44_1329 data.txt");
+  if(cacheOutputFile.is_open()) {
+    cacheOutputFile << Npoints << G4endl;
+    // cacheOutputFile << " X:            Y:         Z:           Beta:       Theta:      Phi:" << G4endl;
+    for(G4int i = 0; i < Npoints; i++){
+      cacheOutputFile << std::fixed << std::setprecision(4) << std::right << std::setw(12) 
+		      << (*ionCollection)[i]->GetPos().getX()/mm << std::setw(12)
+		      << (*ionCollection)[i]->GetPos().getY()/mm << std::setw(12)
+		      << (*ionCollection)[i]->GetPos().getZ()/mm << std::setw(12)
+		      << (*ionCollection)[i]->GetBeta() << std::setw(12)
+		      << (*ionCollection)[i]->GetTheta() << std::setw(12)
+		      << (*ionCollection)[i]->GetPhi() << std::setw(12) << G4endl;
+    }
+  }
+  
+ 
 }
 // --------------------------------------------------
 void EventAction::writeGEBHeader(GEBDATA* gd){
@@ -855,7 +882,6 @@ void EventAction::writeDecomp(long long int ts,
       }
     }
   }
-
 }
 // --------------------------------------------------
 void EventAction::writeSim(long long int ts, EventInformation* eventInfo)
@@ -921,7 +947,7 @@ void EventAction::writeSim(long long int ts, EventInformation* eventInfo)
 	     << eventInfo->GetBeta(i) << G4endl;
     }
   }
- 
+
 }
 // --------------------------------------------------TB
 void EventAction::openEvfile()
@@ -1053,3 +1079,22 @@ void EventAction::SetCrystalXforms(){
   return;
 }
 //---------------------------------------------------
+void EventAction::openCacheOutputFile(G4String FileName)
+{
+  cacheOutputFileName = FileName;
+  if (!cacheOutputFile.is_open()) cacheOutputFile.open(cacheOutputFileName.c_str());
+  if (!cacheOutputFile.is_open()){
+    G4cout<< "ERROR opening cache output file." << G4endl;
+    cacheOut = false;
+  } else {
+    G4cout << "\nOpened output file: " << outFileName << G4endl;
+    cacheOut = true;
+  }
+  return;
+}
+//-----------------------------------------------------
+void EventAction::closeCacheOutputFile()
+{
+  cacheOutputFile.close();
+  return;
+}

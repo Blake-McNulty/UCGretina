@@ -41,7 +41,11 @@ void RunAction::BeginOfRunAction(const G4Run* run)
   if(evaction->Mode2Out())
     G4cout << " Writing Mode 2 output to " 
 	   << evaction->GetMode2FileName() << G4endl;
-
+  if(evaction->CacheOut()){
+    std::ofstream &cacheOutputFile = evaction->getCacheOutputFile();
+    cacheOutputFile << run->GetNumberOfEventToBeProcessed() << G4endl;
+  }
+  
   Timer.Start();
 }
 
@@ -53,6 +57,8 @@ void RunAction::EndOfRunAction(const G4Run*)
     evaction->closeEvfile();
   if(evaction->Mode2Out())
     evaction->closeMode2file();
+  if(evaction->CacheOut())
+    evaction->closeCacheOutputFile();
 
   Timer.Stop();
 

@@ -597,19 +597,57 @@ void EventAction::writeCache(TrackerIonHitsCollection* ionCollection){
   // Cached event output
   //#P.P.E. : Number of Points Per Event
   G4int Npoints = ionCollection->entries();
+  G4bool reactionOccurence = false;
+  G4bool emissionOccurence = false;
+  G4double timeOffset = 0;
   std::ofstream outputFile("s44_1329 data.txt");
   if(cacheOutputFile.is_open()) {
-    cacheOutputFile << Npoints << G4endl;
+   
     // cacheOutputFile << " X:            Y:         Z:           Beta:       Theta:      Phi:" << G4endl;
     for(G4int i = 0; i < Npoints; i++){
-      cacheOutputFile << std::fixed << std::setprecision(4) << std::right << std::setw(12) 
-		      << (*ionCollection)[i]->GetPos().getX()/mm << std::setw(12)
-		      << (*ionCollection)[i]->GetPos().getY()/mm << std::setw(12)
-		      << (*ionCollection)[i]->GetPos().getZ()/mm << std::setw(12)
-		      << (*ionCollection)[i]->GetBeta() << std::setw(12)
-		      << (*ionCollection)[i]->GetTheta() << std::setw(12)
-		      << (*ionCollection)[i]->GetPhi() << std::setw(12) << G4endl;
+      if((*ionCollection)[i]->GetParticleID().contains("[")&&!reactionOccurence) {
+	reactionOccurence = true;
+	cacheOutputFile << Npoints-i+1 << G4endl;
+      }
+      if(reactionOccurence&&!(*ionCollection)[i]->GetParticleID().contains("[")&&!emissionOccurence) {
+	emissionOccurence = true;
+	timeOffset = (*ionCollection)[i-1]->GetTime() + (*ionCollection)[i-1]->GetDeltaTime();
+      }
+      if(reactionOccurence) {
+	G4ThreeVector betaVector = G4ThreeVector(0,0,1);
+	betaVector.setMag((*ionCollection)[i]->GetBeta());
+	betaVector.setTheta((*ionCollection)[i]->GetTheta());
+	betaVector.setPhi((*ionCollection)[i]->GetPhi());
+	cacheOutputFile << std::fixed << std::setprecision(4) << std::right << std::setw(12) 
+			<< (*ionCollection)[i]->GetPos().getX()/mm << std::setw(12)
+			<< (*ionCollection)[i]->GetPos().getY()/mm << std::setw(12)
+			<< (*ionCollection)[i]->GetPos().getZ()/mm << std::setw(12)
+			<< std::setprecision(6) << betaVector.getX() << std::setw(12)
+			<< betaVector.getY() << std::setw(12)
+			<< betaVector.getZ() << std::setw(12)
+			<< std::setprecision(4) << ((*ionCollection)[i]->GetTime()+timeOffset)/ps << std::setw(12) << G4endl;
+      }
+ 
     }
+    EventInformation* eventInfo = (EventInformation*)G4EventManager::
+      GetEventManager()->GetUserInformation();
+    	G4ThreeVector betaVector = G4ThreeVector(0,0,1);
+	betaVector.setMag(eventInfo->GetExitBeta());
+	betaVector.setTheta(eventInfo->GetExitTheta());
+	betaVector.setPhi(eventInfo->GetExitPhi());
+    cacheOutputFile << std::fixed << std::setprecision(4) << std::right << std::setw(12) 
+		    << eventInfo->GetExitPos()->getX()/mm << std::setw(12)
+		    << eventInfo->GetExitPos()->getY()/mm << std::setw(12)
+		    << eventInfo->GetExitPos()->getZ()/mm << std::setw(12)
+		    << std::setprecision(6) << betaVector.getX() << std::setw(12)
+		    << betaVector.getY() << std::setw(12)
+		    << betaVector.getZ() << std::setw(12)
+		    << std::setprecision(4) << (eventInfo->GetExitTime()+timeOffset)/ps << std::setw(12) << G4endl;
+    cacheOutputFile << std::fixed << std::setprecision(8) << std::right << std::setw(20)
+		    << eventInfo->GetATA() << std::setw(20)
+		    << eventInfo->GetBTA() << std::setw(20)
+		    << eventInfo->GetDTA() << std::setw(20)
+		    << eventInfo->GetYTA() << std::setw(20) << G4endl;
   }
   
  

@@ -62,3 +62,9 @@ void EventInformation::AddBeta(G4double b, G4int TID){
   fNBetas++;
 
 }
+
+void EventInformation::SetExitPos(G4ThreeVector* p){
+  fExitPos.setX(p->x());
+  fExitPos.setY(p->y());
+  fExitPos.setZ(p->z());
+}

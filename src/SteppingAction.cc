@@ -124,6 +124,12 @@ void SteppingAction::UserSteppingAction(const G4Step* aStep)
       // South is + in NSCL coords = -x in Geant4 coords
       eventInfo->SetYTA( -aStep->GetTrack()->GetStep()->GetPreStepPoint()->GetPosition().getX()*mm );
 
+      eventInfo->SetExitTheta(aStep->GetTrack()->GetStep()->GetPostStepPoint()->GetMomentum().getTheta());
+      eventInfo->SetExitBeta(aStep->GetTrack()->GetStep()->GetPostStepPoint()->GetBeta());
+      eventInfo->SetExitPhi(aStep->GetTrack()->GetStep()->GetPostStepPoint()->GetMomentum().getPhi());
+      eventInfo->SetExitTime(aStep->GetTrack()->GetStep()->GetPostStepPoint()->GetProperTime());
+      G4ThreeVector pos = aStep->GetTrack()->GetStep()->GetPostStepPoint()->GetPosition();
+      eventInfo->SetExitPos(&pos);
     }
     // Kill a reaction product once it hits the chamber or beamline
     // as long it has already emitted its gamma(s)

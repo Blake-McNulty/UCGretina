@@ -45,7 +45,18 @@ void RunAction::BeginOfRunAction(const G4Run* run)
     std::ofstream &cacheOutputFile = evaction->getCacheOutputFile();
     cacheOutputFile << run->GetNumberOfEventToBeProcessed() << G4endl;
   }
-  
+  if(evaction->CacheIn()){
+      std::ifstream &cacheInputFile = evaction->getCacheInputFile();
+      G4int Nevents;
+      cacheInputFile >> Nevents;
+      G4cout << Nevents << " events in cache file." << G4endl;
+      if (Nevents < run->GetNumberOfEventToBeProcessed()){
+	G4cerr << "Error: There are only " << Nevents
+	       << " events in the cache file and the user has requested "
+	       << run->GetNumberOfEventToBeProcessed() << G4endl;
+	exit(EXIT_FAILURE);
+      }
+  }
   Timer.Start();
 }
 

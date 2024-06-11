@@ -600,7 +600,7 @@ void EventAction::writeCache(TrackerIonHitsCollection* ionCollection){
   G4bool reactionOccurence = false;
   G4bool emissionOccurence = false;
   G4double timeOffset = 0;
-  std::ofstream outputFile("s44_1329 data.txt");
+  //std::ofstream outputFile("s44_1329 data.txt");
   if(cacheOutputFile.is_open()) {
    
     // cacheOutputFile << " X:            Y:         Z:           Beta:       Theta:      Phi:" << G4endl;
@@ -1134,5 +1134,25 @@ void EventAction::openCacheOutputFile(G4String FileName)
 void EventAction::closeCacheOutputFile()
 {
   cacheOutputFile.close();
+  return;
+}
+//----------------------------------------------------
+void EventAction::openCacheInputFile(G4String FileName)
+{
+  cacheInputFileName = FileName;
+  if (!cacheInputFile.is_open()) cacheInputFile.open(cacheInputFileName.c_str());
+  if (!cacheInputFile.is_open()){
+    G4cout<< "ERROR opening cache input file." << G4endl;
+    cacheIn = false;
+  } else {
+    G4cout << "\nOpened input file: " << cacheInputFileName << G4endl;
+    cacheIn = true;
+  }
+  return;
+}
+//-----------------------------------------------------
+void EventAction::closeCacheInputFile()
+{
+  cacheInputFile.close();
   return;
 }

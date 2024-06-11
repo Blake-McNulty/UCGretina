@@ -40,11 +40,14 @@ PrimaryGeneratorAction::~PrimaryGeneratorAction()
 
 void PrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
 {
-
+  EventAction* eventAction = (EventAction*)G4RunManager::GetRunManager()->GetUserEventAction();
+  if(eventAction->CacheIn())
+    SetCache();
+  
   particleTable = G4ParticleTable::GetParticleTable();
   ionTable = G4IonTable::GetIonTable();
   BeamOut->SetReactionFlag(-1);
-
+  
   if(source)
     {
 
@@ -228,7 +231,42 @@ void PrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
       // 	     << G4endl;
       
     }
-
+  else if(cache)
+  {
+      G4String cacheData[9700];
+      char currentLine[1000];
+      G4int Npoints;
+      G4double x[1000];
+      G4double y[1000];
+      G4double z[1000];
+      G4double bx[1000];
+      G4double by[1000];
+      G4double bz[1000];
+      G4double t[1000];
+      G4double ata, bta, dta, yta;
+      //      G4bool cacheFileExists = eventAction->CacheOut();
+      //      if(cacheFileExists) {
+      std::ifstream& cacheFile = eventAction->getCacheInputFile();
+      if(cacheFile.is_open()) {
+	cacheFile >> Npoints;
+	G4cout << Npoints << G4endl;
+	for(int i = 0; i < Npoints; i++) {
+	  cacheFile >> x[i] >> y[i] >> z[i] >> bx[i] >> by[i] >> bz[i] >> t[i];
+	  G4cout << x[i] << std::setw(12)
+		 << y[i] << std::setw(12)
+		 << z[i] << std::setw(12)
+		 << bx[i] << std::setw(12)
+		 << by[i] << std::setw(12)
+		 << bz[i] << std::setw(12)
+		 << t[i] << std::setw(12) << G4endl;
+	  cacheFile.getline(currentLine,1000);
+	}
+	cacheFile >> ata >> bta >> dta >> yta;
+	G4cout << ata << std::setw(12) << bta << std::setw(12) << dta << std::setw(12) << yta << std::setw(12) << G4endl;
+      }
+      
+	//      }
+  }
   //  G4cout<<" +++++ Generating an event "<<G4endl;
   particleGun->GeneratePrimaryVertex(anEvent);
 

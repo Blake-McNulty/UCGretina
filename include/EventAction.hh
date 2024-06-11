@@ -49,7 +49,11 @@ class EventAction : public G4UserEventAction
     void openCacheOutputFile(G4String);
     void closeCacheOutputFile();
     G4bool CacheOut(){return cacheOut;}
-  std::ofstream& getCacheOutputFile(){return cacheOutputFile;}
+    std::ofstream& getCacheOutputFile(){return cacheOutputFile;}
+    void openCacheInputFile(G4String);
+    void closeCacheInputFile();
+    G4bool CacheIn(){return cacheIn;}
+    std::ifstream& getCacheInputFile(){return cacheInputFile;}
     void openCrmatFile();
     void closeCrmatFile();
     void SetCrmatFile(G4String);
@@ -88,6 +92,9 @@ class EventAction : public G4UserEventAction
     G4String cacheOutputFileName;
     std::ofstream cacheOutputFile;
     G4bool cacheOut;
+    G4String cacheInputFileName;
+    std::ifstream cacheInputFile;
+    G4bool cacheIn;
     G4String mode2FileName;
     G4int mode2file;
     G4bool mode2Out;  

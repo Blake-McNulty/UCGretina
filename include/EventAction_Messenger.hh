@@ -32,6 +32,7 @@ class EventAction_Messenger: public G4UImessenger
     G4UIcmdWithAString*        Mode2FileCmd;
     G4UIdirectory*             cacheDir;
     G4UIcmdWithAString*        cacheOutputFileCmd;
+    G4UIcmdWithAString*        cacheInputFileCmd;
     G4UIcmdWithoutParameter*   TimeSortCmd;
     G4UIcmdWithAString*        crmatCmd;
     G4UIcmdWithoutParameter*   crysCmd;

@@ -5,7 +5,7 @@
 #include "TrackerIonSD.hh"
 #include "TrackerGammaSD.hh"
 #include "G4Event.hh"
-#include "EventInformation.hh"
+#include "PrimaryVertexInformation.hh"
 #include "G4TrajectoryContainer.hh"
 #include "G4Trajectory.hh"
 #include "G4ios.hh"
@@ -44,7 +44,7 @@ class EventAction : public G4UserEventAction
     void writeS800(long long int, G4double, G4double, G4double, G4double);
     void writeDecomp(long long int, G4int, G4int*, G4int*, G4int*, G4double*,
                      G4double*, G4double*, G4double*, G4double*, G4double*);
-    void writeSim(long long int, EventInformation*);
+    void writeSim(long long int, PrimaryVertexInformation*);
     void writeCache(TrackerIonHitsCollection*);
     void openCacheOutputFile(G4String);
     void closeCacheOutputFile();
@@ -54,6 +54,12 @@ class EventAction : public G4UserEventAction
     void closeCacheInputFile();
     G4bool CacheIn(){return cacheIn;}
     std::ifstream& getCacheInputFile(){return cacheInputFile;}
+    void SetCacheHalfLife(G4double hl) {cacheHalfLife=hl;}
+    void SetCacheGammaEnergy(G4double e) {cacheGammaEnergy=e;}
+    void SetCacheZOffset(G4double z) {cacheZOffset=z;}
+    G4double GetCacheHalfLife() { return cacheHalfLife; }
+    G4double GetCacheGammaEnergy() { return cacheGammaEnergy; }
+    G4double GetCacheZOffset() { return cacheZOffset; }
     void openCrmatFile();
     void closeCrmatFile();
     void SetCrmatFile(G4String);
@@ -95,6 +101,9 @@ class EventAction : public G4UserEventAction
     G4String cacheInputFileName;
     std::ifstream cacheInputFile;
     G4bool cacheIn;
+    G4double cacheGammaEnergy;
+    G4double cacheHalfLife;
+    G4double cacheZOffset;
     G4String mode2FileName;
     G4int mode2file;
     G4bool mode2Out;  

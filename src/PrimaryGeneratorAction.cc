@@ -162,6 +162,8 @@ void PrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
 
       particleGun->SetParticleEnergy(GetSourceEnergy());
 
+      //  G4cout<<" +++++ Generating an event "<<G4endl;
+      particleGun->GeneratePrimaryVertex(anEvent);
     }
   else if(inbeam)
     {
@@ -214,12 +216,12 @@ void PrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
       TT = myDetector->GetTarget()->DistanceToIn(position, direction);
       TT = myDetector->GetTarget()->DistanceToOut(position+TT*direction, 
 						  direction);
-      TT *= direction.getZ();
+
 
       TC=myDetector->GetTargetPos()->getZ();
-      depth=TC+TT*(G4UniformRand()-0.5);
 #endif
-
+      TT *= direction.getZ();
+      
       // Z position of the reaction point
       depth=TC+TT*(G4UniformRand()-0.5);
       myDetector->setTargetReactionDepth(depth);
@@ -229,11 +231,12 @@ void PrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
       // 	     << ", thickness along trajectory = " << TT
       // 	     << ", depth = " << depth
       // 	     << G4endl;
-      
+
+      //  G4cout<<" +++++ Generating an event "<<G4endl;
+      particleGun->GeneratePrimaryVertex(anEvent);
     }
   else if(cache)
-  {
-      G4String cacheData[9700];
+    {
       char currentLine[1000];
       G4int Npoints;
       G4double x[1000];
@@ -244,31 +247,97 @@ void PrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
       G4double bz[1000];
       G4double t[1000];
       G4double ata, bta, dta, yta;
-      //      G4bool cacheFileExists = eventAction->CacheOut();
-      //      if(cacheFileExists) {
+
+      G4bool emissionSet = false;
+      G4ThreeVector emissionPos;
+      G4ThreeVector emissionBeta;
+
       std::ifstream& cacheFile = eventAction->getCacheInputFile();
       if(cacheFile.is_open()) {
 	cacheFile >> Npoints;
-	G4cout << Npoints << G4endl;
+	//	G4cout << Npoints << G4endl;
+
+	G4double halflife = eventAction->GetCacheHalfLife(); // ps
+        G4double lifetime = halflife/log(2)/ps;
+        G4double emissionTime = CLHEP::RandExponential::shoot(lifetime);
 	for(int i = 0; i < Npoints; i++) {
 	  cacheFile >> x[i] >> y[i] >> z[i] >> bx[i] >> by[i] >> bz[i] >> t[i];
-	  G4cout << x[i] << std::setw(12)
-		 << y[i] << std::setw(12)
-		 << z[i] << std::setw(12)
-		 << bx[i] << std::setw(12)
-		 << by[i] << std::setw(12)
-		 << bz[i] << std::setw(12)
-		 << t[i] << std::setw(12) << G4endl;
+	  // G4cout << x[i] << std::setw(12)
+	  // 	 << y[i] << std::setw(12)
+	  // 	 << z[i] << std::setw(12)
+	  // 	 << bx[i] << std::setw(12)
+	  // 	 << by[i] << std::setw(12)
+	  // 	 << bz[i] << std::setw(12)
+	  // 	 << t[i] << std::setw(12) << G4endl;
 	  cacheFile.getline(currentLine,1000);
+	  if(!emissionSet){
+	    if(lifetime > 0){
+	      if(t[i] > emissionTime){
+		G4ThreeVector x1 = G4ThreeVector(x[i-1], y[i-1], z[i-1]);
+		G4ThreeVector x2 = G4ThreeVector(x[i],   y[i],   z[i]);
+		emissionPos = (x1*(emissionTime-t[i-1])
+			       + x2*(t[i]-emissionTime))/(t[i] - t[i-1]);
+		G4ThreeVector beta1 = G4ThreeVector(bx[i-1], by[i-1], bz[i-1]);
+		G4ThreeVector beta2 = G4ThreeVector(bx[i],   by[i],   bz[i]);
+		emissionBeta = (beta1*(emissionTime-t[i-1])
+				+ beta2*(t[i]-emissionTime))/(t[i] - t[i-1]);
+		emissionSet = true;
+	      }
+	    } else {
+	      emissionPos = G4ThreeVector(x[0],   y[0],  z[0]);
+	      emissionBeta = G4ThreeVector(bx[0], by[0], bz[0]);
+	      emissionSet = true;
+	    }
+	  }
 	}
+	// Downstream of the target, we extrapolate.
+	if(!emissionSet){
+	  emissionBeta = G4ThreeVector(bx[Npoints-1], by[Npoints-1], bz[Npoints-1]);
+	  G4double c = 0.299792458; // mm/ps
+	  emissionPos = G4ThreeVector(x[Npoints-1], y[Npoints-1], z[Npoints-1])
+	    + emissionBeta*c*(emissionTime-t[Npoints-1]);
+	  emissionSet = true;
+	}
+
 	cacheFile >> ata >> bta >> dta >> yta;
-	G4cout << ata << std::setw(12) << bta << std::setw(12) << dta << std::setw(12) << yta << std::setw(12) << G4endl;
+	//	G4cout << ata << std::setw(12) << bta << std::setw(12) << dta << std::setw(12) << yta << std::setw(12) << G4endl;
       }
+      //G4FourVector r = (ata, bta, dta, yta);
+      // Projectile-frame gamma-ray energy
+      G4double e = eventAction->GetCacheGammaEnergy();
+
+      // Projectile-frame gamma-ray momentum vector
+      //   TO DO: implement angular distribution
+      G4ThreeVector p = G4RandomDirection();
+      p.setMag(e);
       
-	//      }
-  }
-  //  G4cout<<" +++++ Generating an event "<<G4endl;
-  particleGun->GeneratePrimaryVertex(anEvent);
+      // Projectile-frame gamma-ray 4 momentum
+      G4LorentzVector pProj = G4LorentzVector(p, e);
+
+      // Boost the gamma-ray 4 momentum to the lab frame.
+      G4LorentzVector pLab = pProj.boost(emissionBeta);
+      
+      // Lab-frame gamma-ray emission direction
+      G4ThreeVector gDir = G4ThreeVector(0, 0, 1); 
+      gDir.setTheta(pLab.theta());
+      gDir.setPhi(pLab.phi());
+
+      // Set the particle gun parameters.
+      particleGun->SetParticleDefinition(particleTable->FindParticle("gamma"));
+      particleGun->SetParticleMomentumDirection(gDir);
+      particleGun->SetParticleEnergy(pLab.e());
+      particleGun->SetParticlePosition(emissionPos);
+      particleGun->GeneratePrimaryVertex(anEvent);
+
+      PrimaryVertexInformation* primaryVertexInfo = new PrimaryVertexInformation;
+      anEvent->GetPrimaryVertex()->SetUserInformation(primaryVertexInfo);
+      primaryVertexInfo->AddBeta(emissionBeta.mag(), 0);
+      primaryVertexInfo->SetATA(ata);
+      primaryVertexInfo->SetBTA(bta);
+      primaryVertexInfo->SetDTA(dta);
+      primaryVertexInfo->SetYTA(yta);
+  
+    }
 
   if(sourceMultiplicity > 1 &&
      (sourceType == "white" || sourceType == "bgwhite")){

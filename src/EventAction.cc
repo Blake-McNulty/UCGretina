@@ -44,10 +44,9 @@ void EventAction::BeginOfEventAction(const G4Event* ev)
 {
   evt = ev;
 
-  // Add a G4UserEventInformation object to store event info
-  EventInformation* eventInfo = new EventInformation;
-  G4EventManager::
-    GetEventManager()->SetUserInformation(eventInfo);
+  // Get the PrimaryVertexInformation.
+  PrimaryVertexInformation* primaryVertexInfo = (PrimaryVertexInformation*)evt->GetPrimaryVertex()->GetUserInformation();
+  
 
   G4SDManager * SDman = G4SDManager::GetSDMpointer();
 
@@ -58,7 +57,7 @@ void EventAction::BeginOfEventAction(const G4Event* ev)
     }
 
   // For event filter
-  eventInfo->SetWriteEvent(false);
+  primaryVertexInfo->SetWriteEvent(false);
   
   if(crmatFileName != "" && crystalXforms) {
     G4cerr << "Error: Both /Mode2/crystalXforms and /Mode2/crmatFile commands are present." << G4endl;
@@ -121,10 +120,10 @@ void EventAction::EndOfEventAction(const G4Event* ev)
 
   }
   
-  EventInformation* eventInfo = (EventInformation*)evt->GetUserInformation();
+  PrimaryVertexInformation* primaryVertexInfo = (PrimaryVertexInformation*)evt->GetPrimaryVertex()->GetUserInformation();
 
   // Event filter
-  if(!eventInfo->WriteEvent())
+  if(!primaryVertexInfo->WriteEvent())
     return;
   
   // All Mode 2 output from this event gets this timestamp.
@@ -139,22 +138,22 @@ void EventAction::EndOfEventAction(const G4Event* ev)
     if(fisInBeam)
       G4cout << std::fixed << std::setprecision(4) 
 	     << std::setw(12) << std::right
-	     << " ata = " << eventInfo->GetATA()
-	     << " bta = " << eventInfo->GetBTA()
-	     << " dta = " << eventInfo->GetDTA()
-	     << " yta = " << eventInfo->GetYTA()
+	     << " ata = " << primaryVertexInfo->GetATA()
+	     << " bta = " << primaryVertexInfo->GetBTA()
+	     << " dta = " << primaryVertexInfo->GetDTA()
+	     << " yta = " << primaryVertexInfo->GetYTA()
 	     << G4endl;
-    G4cout << eventInfo->GetNEmittedGammas() << " emitted gamma(s)" << G4endl;
-    for(G4int i = 0; i< eventInfo->GetNEmittedGammas(); i++)
+    G4cout << primaryVertexInfo->GetNEmittedGammas() << " emitted gamma(s)" << G4endl;
+    for(G4int i = 0; i< primaryVertexInfo->GetNEmittedGammas(); i++)
       G4cout << std::fixed << std::setprecision(4) 
 	     << std::setw(12) << std::right
-	     << "energy = " << eventInfo->GetEmittedGammaEnergy(i)
-	     << " pos = " << eventInfo->GetEmittedGammaPosX(i)
-	     << ", " << eventInfo->GetEmittedGammaPosY(i)
-	     << ", " << eventInfo->GetEmittedGammaPosZ(i)
-	     << " direction = " << eventInfo->GetEmittedGammaPhi(i)
-	     << ", " << eventInfo->GetEmittedGammaTheta(i)
-	     << " beta = " << eventInfo->GetBeta(i)
+	     << "energy = " << primaryVertexInfo->GetEmittedGammaEnergy(i)
+	     << " pos = " << primaryVertexInfo->GetEmittedGammaPosX(i)
+	     << ", " << primaryVertexInfo->GetEmittedGammaPosY(i)
+	     << ", " << primaryVertexInfo->GetEmittedGammaPosZ(i)
+	     << " direction = " << primaryVertexInfo->GetEmittedGammaPhi(i)
+	     << ", " << primaryVertexInfo->GetEmittedGammaTheta(i)
+	     << " beta = " << primaryVertexInfo->GetBeta(i)
 	     << G4endl;
 
     G4cout.setf( f );
@@ -474,21 +473,21 @@ void EventAction::EndOfEventAction(const G4Event* ev)
       // Identify events in which the full emitted gamma-ray energy
       // is deposited in a single crystal
       // (only evaluated for emitted multiplicity = 1 events).
-      if( eventInfo->GetNEmittedGammas() == 1 ){
+      if( primaryVertexInfo->GetNEmittedGammas() == 1 ){
 
-	G4double delta = totalEdep - eventInfo->GetEmittedGammaEnergy(0);
+	G4double delta = totalEdep - primaryVertexInfo->GetEmittedGammaEnergy(0);
 
 	// Threshold due to discrepancies in energy deposited by recoiling
 	// Ge nuclei in pair-production events. (There are also tiny
 	// discrepancies that can be positive or negative which may be
 	// due to roundoff or some other error somewhere in geant4 tracking.
 	// The upper bound of 0.0001 keV covers those.)
-	G4double delta_th = 6.318E-5*eventInfo->GetEmittedGammaEnergy(0) + .074;
+	G4double delta_th = 6.318E-5*primaryVertexInfo->GetEmittedGammaEnergy(0) + .074;
 
 	if( singleDetector && delta > -delta_th && delta < 0.0001 )
-	  eventInfo->SetFullEnergy(1);
+	  primaryVertexInfo->SetFullEnergy(1);
 	else
-	  eventInfo->SetFullEnergy(0);
+	  primaryVertexInfo->SetFullEnergy(0);
 
       }
 
@@ -558,10 +557,10 @@ void EventAction::EndOfEventAction(const G4Event* ev)
       // Write S800 event to the output file
       if(fisInBeam)
 	writeS800(timestamp, 
-		  eventInfo->GetATA(), 
-		  eventInfo->GetBTA(), 
-		  eventInfo->GetDTA(), 
-		  eventInfo->GetYTA());
+		  primaryVertexInfo->GetATA(), 
+		  primaryVertexInfo->GetBTA(), 
+		  primaryVertexInfo->GetDTA(), 
+		  primaryVertexInfo->GetYTA());
 
       // Write decomposed gamma event(s) to the output file
       writeDecomp(timestamp, 
@@ -576,17 +575,17 @@ void EventAction::EndOfEventAction(const G4Event* ev)
       // if the allS800 flag is set.
       if(allS800 && fisInBeam)
 	writeS800(timestamp, 
-		  eventInfo->GetATA(), 
-		  eventInfo->GetBTA(), 
-		  eventInfo->GetDTA(), 
-		  eventInfo->GetYTA());
+		  primaryVertexInfo->GetATA(), 
+		  primaryVertexInfo->GetBTA(), 
+		  primaryVertexInfo->GetDTA(), 
+		  primaryVertexInfo->GetYTA());
     }
   }
   
   // Write emitted gamma information from this event to 
   // the output file.
 
-  writeSim(timestamp, eventInfo);
+  writeSim(timestamp, primaryVertexInfo);
   TrackerIonHitsCollection* ionCollection 
     = (TrackerIonHitsCollection*)(HCE->GetHC(ionCollectionID));
   writeCache(ionCollection);
@@ -629,25 +628,25 @@ void EventAction::writeCache(TrackerIonHitsCollection* ionCollection){
       }
  
     }
-    EventInformation* eventInfo = (EventInformation*)G4EventManager::
+    PrimaryVertexInformation* primaryVertexInfo = (PrimaryVertexInformation*)G4EventManager::
       GetEventManager()->GetUserInformation();
     	G4ThreeVector betaVector = G4ThreeVector(0,0,1);
-	betaVector.setMag(eventInfo->GetExitBeta());
-	betaVector.setTheta(eventInfo->GetExitTheta());
-	betaVector.setPhi(eventInfo->GetExitPhi());
+	betaVector.setMag(primaryVertexInfo->GetExitBeta());
+	betaVector.setTheta(primaryVertexInfo->GetExitTheta());
+	betaVector.setPhi(primaryVertexInfo->GetExitPhi());
     cacheOutputFile << std::fixed << std::setprecision(4) << std::right << std::setw(12) 
-		    << eventInfo->GetExitPos()->getX()/mm << std::setw(12)
-		    << eventInfo->GetExitPos()->getY()/mm << std::setw(12)
-		    << eventInfo->GetExitPos()->getZ()/mm << std::setw(12)
+		    << primaryVertexInfo->GetExitPos()->getX()/mm << std::setw(12)
+		    << primaryVertexInfo->GetExitPos()->getY()/mm << std::setw(12)
+		    << primaryVertexInfo->GetExitPos()->getZ()/mm << std::setw(12)
 		    << std::setprecision(6) << betaVector.getX() << std::setw(12)
 		    << betaVector.getY() << std::setw(12)
 		    << betaVector.getZ() << std::setw(12)
-		    << std::setprecision(4) << (eventInfo->GetExitTime()+timeOffset)/ps << std::setw(12) << G4endl;
+		    << std::setprecision(4) << (primaryVertexInfo->GetExitTime()+timeOffset)/ps << std::setw(12) << G4endl;
     cacheOutputFile << std::fixed << std::setprecision(8) << std::right << std::setw(20)
-		    << eventInfo->GetATA() << std::setw(20)
-		    << eventInfo->GetBTA() << std::setw(20)
-		    << eventInfo->GetDTA() << std::setw(20)
-		    << eventInfo->GetYTA() << std::setw(20) << G4endl;
+		    << primaryVertexInfo->GetATA() << std::setw(20)
+		    << primaryVertexInfo->GetBTA() << std::setw(20)
+		    << primaryVertexInfo->GetDTA() << std::setw(20)
+		    << primaryVertexInfo->GetYTA() << std::setw(20) << G4endl;
   }
   
  
@@ -922,7 +921,7 @@ void EventAction::writeDecomp(long long int ts,
   }
 }
 // --------------------------------------------------
-void EventAction::writeSim(long long int ts, EventInformation* eventInfo)
+void EventAction::writeSim(long long int ts, PrimaryVertexInformation* primaryVertexInfo)
 {
   if(mode2Out){
     G4int siz;
@@ -936,17 +935,17 @@ void EventAction::writeSim(long long int ts, EventInformation* eventInfo)
 
     //Construct GEB payload for G4SIM event
     g4sim_egs.type = 0xABCD1234;
-    g4sim_egs.num = eventInfo->GetNEmittedGammas();
-    g4sim_egs.full = eventInfo->GetFullEnergy();
+    g4sim_egs.num = primaryVertexInfo->GetNEmittedGammas();
+    g4sim_egs.full = primaryVertexInfo->GetFullEnergy();
 
     for(G4int i = 0; i < g4sim_egs.num; i++){
-      g4sim_egs.gammas[i].e     = eventInfo->GetEmittedGammaEnergy(i);
-      g4sim_egs.gammas[i].x     = eventInfo->GetEmittedGammaPosX(i);
-      g4sim_egs.gammas[i].y     = eventInfo->GetEmittedGammaPosY(i);
-      g4sim_egs.gammas[i].z     = eventInfo->GetEmittedGammaPosZ(i);
-      g4sim_egs.gammas[i].phi   = eventInfo->GetEmittedGammaPhi(i);
-      g4sim_egs.gammas[i].theta = eventInfo->GetEmittedGammaTheta(i);
-      g4sim_egs.gammas[i].beta  = eventInfo->GetBeta(i);
+      g4sim_egs.gammas[i].e     = primaryVertexInfo->GetEmittedGammaEnergy(i);
+      g4sim_egs.gammas[i].x     = primaryVertexInfo->GetEmittedGammaPosX(i);
+      g4sim_egs.gammas[i].y     = primaryVertexInfo->GetEmittedGammaPosY(i);
+      g4sim_egs.gammas[i].z     = primaryVertexInfo->GetEmittedGammaPosZ(i);
+      g4sim_egs.gammas[i].phi   = primaryVertexInfo->GetEmittedGammaPhi(i);
+      g4sim_egs.gammas[i].theta = primaryVertexInfo->GetEmittedGammaTheta(i);
+      g4sim_egs.gammas[i].beta  = primaryVertexInfo->GetBeta(i);
     }
 
     //Write GEB header for G4SIM event
@@ -963,26 +962,26 @@ void EventAction::writeSim(long long int ts, EventInformation* eventInfo)
   }
 
   if(evOut && !outDetsOnly){
-    evfile << "E" << std::setw(4) << eventInfo->GetNEmittedGammas()  
-	   << std::setw(4) << eventInfo->GetFullEnergy()  
+    evfile << "E" << std::setw(4) << primaryVertexInfo->GetNEmittedGammas()  
+	   << std::setw(4) << primaryVertexInfo->GetFullEnergy()  
 	   << std::setw(12) << ts/10000 << G4endl;
-    for(G4int i = 0; i < eventInfo->GetNEmittedGammas(); i++){
+    for(G4int i = 0; i < primaryVertexInfo->GetNEmittedGammas(); i++){
       evfile << "     "
 	     << std::fixed << std::setprecision(4) 
 	     << std::right << std::setw(12) 
-	     << eventInfo->GetEmittedGammaEnergy(i)
+	     << primaryVertexInfo->GetEmittedGammaEnergy(i)
 	     << std::setw(12) 
-	     << eventInfo->GetEmittedGammaPosX(i)
+	     << primaryVertexInfo->GetEmittedGammaPosX(i)
 	     << std::setw(12) 
-	     << eventInfo->GetEmittedGammaPosY(i)
+	     << primaryVertexInfo->GetEmittedGammaPosY(i)
 	     << std::setw(12) 
-	     << eventInfo->GetEmittedGammaPosZ(i)
+	     << primaryVertexInfo->GetEmittedGammaPosZ(i)
 	     << std::setw(12) 
-	     << eventInfo->GetEmittedGammaPhi(i)
+	     << primaryVertexInfo->GetEmittedGammaPhi(i)
 	     << std::setw(12) 
-	     << eventInfo->GetEmittedGammaTheta(i)
+	     << primaryVertexInfo->GetEmittedGammaTheta(i)
 	     << std::setw(12)
-	     << eventInfo->GetBeta(i) << G4endl;
+	     << primaryVertexInfo->GetBeta(i) << G4endl;
     }
   }
 

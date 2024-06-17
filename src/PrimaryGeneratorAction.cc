@@ -164,6 +164,9 @@ void PrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
 
       //  G4cout<<" +++++ Generating an event "<<G4endl;
       particleGun->GeneratePrimaryVertex(anEvent);
+      PrimaryVertexInformation* primaryVertexInfo = new PrimaryVertexInformation;
+      anEvent->GetPrimaryVertex()->SetUserInformation(primaryVertexInfo);
+
     }
   else if(inbeam)
     {
@@ -217,7 +220,6 @@ void PrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
       TT = myDetector->GetTarget()->DistanceToOut(position+TT*direction, 
 						  direction);
 
-
       TC=myDetector->GetTargetPos()->getZ();
 #endif
       TT *= direction.getZ();
@@ -234,6 +236,9 @@ void PrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
 
       //  G4cout<<" +++++ Generating an event "<<G4endl;
       particleGun->GeneratePrimaryVertex(anEvent);
+      PrimaryVertexInformation* primaryVertexInfo = new PrimaryVertexInformation;
+      anEvent->GetPrimaryVertex()->SetUserInformation(primaryVertexInfo);
+
     }
   else if(cache)
     {

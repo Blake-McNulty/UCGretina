@@ -27,9 +27,9 @@ void TrackingAction::PreUserTrackingAction(const G4Track* aTrack)
   // 	   << aTrack->GetCreatorProcess()->GetProcessName() << G4endl;
   // G4cout << ">      ----------------------------" << G4endl;
 
-  primaryVertexInfo 
-    = (PrimaryVertexInformation*)eventAction->GetEvent()->GetUserInformation();
-
+  primaryVertexInfo
+    = (PrimaryVertexInformation*)eventAction->GetEvent()->GetPrimaryVertex()->GetUserInformation();
+  
   // Emitted gamma
   if( ( aTrack->GetParticleDefinition()->GetParticleName() == "gamma" ||
 	aTrack->GetParticleDefinition()->GetParticleName() == "neutron" ||
@@ -67,8 +67,8 @@ void TrackingAction::PreUserTrackingAction(const G4Track* aTrack)
 void TrackingAction::PostUserTrackingAction(const G4Track* aTrack)
 {
 
-  primaryVertexInfo 
-    = (PrimaryVertexInformation*)eventAction->GetEvent()->GetUserInformation();
+  primaryVertexInfo
+    = (PrimaryVertexInformation*)eventAction->GetEvent()->GetPrimaryVertex()->GetUserInformation();
 
   // G4cout << std::fixed << std::setprecision(4) << std::setw(12)
   // 	 << "> PostUserTrackingAction" << G4endl;

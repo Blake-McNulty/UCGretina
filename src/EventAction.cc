@@ -628,12 +628,12 @@ void EventAction::writeCache(TrackerIonHitsCollection* ionCollection){
       }
  
     }
-    PrimaryVertexInformation* primaryVertexInfo = (PrimaryVertexInformation*)G4EventManager::
-      GetEventManager()->GetUserInformation();
-    	G4ThreeVector betaVector = G4ThreeVector(0,0,1);
-	betaVector.setMag(primaryVertexInfo->GetExitBeta());
-	betaVector.setTheta(primaryVertexInfo->GetExitTheta());
-	betaVector.setPhi(primaryVertexInfo->GetExitPhi());
+    PrimaryVertexInformation* primaryVertexInfo
+      = (PrimaryVertexInformation*)evt->GetPrimaryVertex()->GetUserInformation();
+    G4ThreeVector betaVector = G4ThreeVector(0,0,1);
+    betaVector.setMag(primaryVertexInfo->GetExitBeta());
+    betaVector.setTheta(primaryVertexInfo->GetExitTheta());
+    betaVector.setPhi(primaryVertexInfo->GetExitPhi());
     cacheOutputFile << std::fixed << std::setprecision(4) << std::right << std::setw(12) 
 		    << primaryVertexInfo->GetExitPos()->getX()/mm << std::setw(12)
 		    << primaryVertexInfo->GetExitPos()->getY()/mm << std::setw(12)

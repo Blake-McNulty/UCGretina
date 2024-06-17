@@ -34,7 +34,6 @@
 #include "SteppingAction.hh"
 
 #include "EventAction.hh"
-#include "EventInformation.hh"
 
 #include "G4Step.hh"
 #include "G4RunManager.hh"
@@ -56,8 +55,8 @@ SteppingAction::~SteppingAction()
 
 void SteppingAction::UserSteppingAction(const G4Step* aStep)
 {
-  primaryVertexInfo 
-    = (PrimaryVertexInformation*)eventAction->GetEvent()->GetUserInformation();
+  primaryVertexInfo
+    = (PrimaryVertexInformation*)eventAction->GetEvent()->GetPrimaryVertex()->GetUserInformation();
 
   // if(   aStep->GetTrack()->GetDefinition()->GetParticleType() == "nucleus" 
   // 	&& aStep->GetPostStepPoint()->GetStepStatus() != fWorldBoundary ){

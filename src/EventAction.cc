@@ -12,11 +12,16 @@ EventAction::EventAction()
   packingRes = 0.*mm;
   S800KE = 1.0;
   allS800 = false;
+  cacheOutputFileName = "";
+  cacheOut = false;
+  cacheInputFileName = "";
+  cacheIn = false;
+  cacheGammaEnergy = 0;
+  cacheZOffset = 0;
+  cacheHalfLife = 0;
   outFileName = "";
   outDetsOnly = false;
   evOut = false;
-  cacheOutputFileName = "";
-  cacheOut = false;
   mode2FileName = "";
   mode2Out = false;
   crmatFileName = "";
@@ -555,7 +560,7 @@ void EventAction::EndOfEventAction(const G4Event* ev)
       }
 
       // Write S800 event to the output file
-      if(fisInBeam)
+      if(fisInBeam || cacheIn)
 	writeS800(timestamp, 
 		  primaryVertexInfo->GetATA(), 
 		  primaryVertexInfo->GetBTA(), 
@@ -573,7 +578,7 @@ void EventAction::EndOfEventAction(const G4Event* ev)
     } else {
       // Write S800 event to the output file with no detected gammas
       // if the allS800 flag is set.
-      if(allS800 && fisInBeam)
+      if(allS800 && (fisInBeam || cacheIn))
 	writeS800(timestamp, 
 		  primaryVertexInfo->GetATA(), 
 		  primaryVertexInfo->GetBTA(), 
@@ -586,70 +591,116 @@ void EventAction::EndOfEventAction(const G4Event* ev)
   // the output file.
 
   writeSim(timestamp, primaryVertexInfo);
-  TrackerIonHitsCollection* ionCollection 
-    = (TrackerIonHitsCollection*)(HCE->GetHC(ionCollectionID));
-  writeCache(ionCollection);
+
+  if(cacheOut){
+    TrackerIonHitsCollection* ionCollection 
+      = (TrackerIonHitsCollection*)(HCE->GetHC(ionCollectionID));
+    writeCache(ionCollection);
+  }
 
 }
 //---------------------------------------------------
 void EventAction::writeCache(TrackerIonHitsCollection* ionCollection){
-  // Cached event output
-  //#P.P.E. : Number of Points Per Event
+  PrimaryVertexInformation* primaryVertexInfo
+    = (PrimaryVertexInformation*)evt->GetPrimaryVertex()->GetUserInformation();
+
+  // Process reaction-product tracking points
   G4int Npoints = ionCollection->entries();
   G4bool reactionOccurence = false;
   G4bool emissionOccurence = false;
   G4double timeOffset = 0;
-  //std::ofstream outputFile("s44_1329 data.txt");
-  if(cacheOutputFile.is_open()) {
-   
-    // cacheOutputFile << " X:            Y:         Z:           Beta:       Theta:      Phi:" << G4endl;
-    for(G4int i = 0; i < Npoints; i++){
-      if((*ionCollection)[i]->GetParticleID().contains("[")&&!reactionOccurence) {
-	reactionOccurence = true;
-	cacheOutputFile << Npoints-i+1 << G4endl;
-      }
-      if(reactionOccurence&&!(*ionCollection)[i]->GetParticleID().contains("[")&&!emissionOccurence) {
-	emissionOccurence = true;
-	timeOffset = (*ionCollection)[i-1]->GetTime() + (*ionCollection)[i-1]->GetDeltaTime();
-      }
-      if(reactionOccurence) {
-	G4ThreeVector betaVector = G4ThreeVector(0,0,1);
-	betaVector.setMag((*ionCollection)[i]->GetBeta());
-	betaVector.setTheta((*ionCollection)[i]->GetTheta());
-	betaVector.setPhi((*ionCollection)[i]->GetPhi());
-	cacheOutputFile << std::fixed << std::setprecision(4) << std::right << std::setw(12) 
-			<< (*ionCollection)[i]->GetPos().getX()/mm << std::setw(12)
-			<< (*ionCollection)[i]->GetPos().getY()/mm << std::setw(12)
-			<< (*ionCollection)[i]->GetPos().getZ()/mm << std::setw(12)
-			<< std::setprecision(6) << betaVector.getX() << std::setw(12)
-			<< betaVector.getY() << std::setw(12)
-			<< betaVector.getZ() << std::setw(12)
-			<< std::setprecision(4) << ((*ionCollection)[i]->GetTime()+timeOffset)/ps << std::setw(12) << G4endl;
-      }
- 
+  
+  G4double x[1000];
+  G4double y[1000];
+  G4double z[1000];
+  G4double bx[1000];
+  G4double by[1000];
+  G4double bz[1000];
+  G4double t[1000];
+
+  // Store steps in the target starting at the reaction point.
+  G4int Nwrite = 0;
+  for(G4int i = 0; i < Npoints; i++){
+    // Find the reaction step.
+    if( (*ionCollection)[i]->GetParticleID().contains("[")
+	&& !reactionOccurence) {
+      reactionOccurence = true;
     }
-    PrimaryVertexInformation* primaryVertexInfo
-      = (PrimaryVertexInformation*)evt->GetPrimaryVertex()->GetUserInformation();
+    // We need to add in a time offset for any steps in the target after
+    // a gamma-ray is emitted.
+    // (The proper time clock resets with each particle change.)
+    if( !(*ionCollection)[i]->GetParticleID().contains("[")
+	&& reactionOccurence &&!emissionOccurence) {
+      emissionOccurence = true;
+      timeOffset = (*ionCollection)[i-1]->GetTime()
+	         + (*ionCollection)[i-1]->GetDeltaTime();
+      continue; // This is a particle change step, at the same position
+                // as the next one. We don't write this one.
+    }
+    // Either the reaction has happened, or it happens is the last
+    // step in the target.
+    if(reactionOccurence || (Nwrite == 0 && i == Npoints-1) ) {
+      G4ThreeVector betaVector = G4ThreeVector(0,0,1);
+      betaVector.setMag((*ionCollection)[i]->GetBeta());
+      betaVector.setTheta((*ionCollection)[i]->GetTheta());
+      betaVector.setPhi((*ionCollection)[i]->GetPhi());
+      x[Nwrite]  = (*ionCollection)[i]->GetPos().getX();
+      y[Nwrite]  = (*ionCollection)[i]->GetPos().getY();
+      z[Nwrite]  = (*ionCollection)[i]->GetPos().getZ();
+      bx[Nwrite] = betaVector.getX();
+      by[Nwrite] = betaVector.getY();
+      bz[Nwrite] = betaVector.getZ();
+      // If the reaction happens in the last step in the target,
+      // the proper-time "clock" should start there.
+      if(Nwrite == 0 && i == Npoints-1)
+	timeOffset = -(*ionCollection)[i]->GetTime();
+      t[Nwrite]  = ((*ionCollection)[i]->GetTime()+timeOffset)/ps;
+      Nwrite++;
+    }
+  }
+  if(Nwrite > 0){
+    // Store the trajectory point as the ion exits the target.
     G4ThreeVector betaVector = G4ThreeVector(0,0,1);
     betaVector.setMag(primaryVertexInfo->GetExitBeta());
     betaVector.setTheta(primaryVertexInfo->GetExitTheta());
     betaVector.setPhi(primaryVertexInfo->GetExitPhi());
-    cacheOutputFile << std::fixed << std::setprecision(4) << std::right << std::setw(12) 
-		    << primaryVertexInfo->GetExitPos()->getX()/mm << std::setw(12)
-		    << primaryVertexInfo->GetExitPos()->getY()/mm << std::setw(12)
-		    << primaryVertexInfo->GetExitPos()->getZ()/mm << std::setw(12)
-		    << std::setprecision(6) << betaVector.getX() << std::setw(12)
-		    << betaVector.getY() << std::setw(12)
-		    << betaVector.getZ() << std::setw(12)
-		    << std::setprecision(4) << (primaryVertexInfo->GetExitTime()+timeOffset)/ps << std::setw(12) << G4endl;
+    x[Nwrite]  = primaryVertexInfo->GetExitPos()->getX();
+    y[Nwrite]  = primaryVertexInfo->GetExitPos()->getY();
+    z[Nwrite]  = primaryVertexInfo->GetExitPos()->getZ();
+    bx[Nwrite] = betaVector.getX();
+    by[Nwrite] = betaVector.getY();
+    bz[Nwrite] = betaVector.getZ();
+    t[Nwrite]  = (primaryVertexInfo->GetExitTime()+timeOffset)/ps;
+    Nwrite++;
+  }
+
+  // Write this event to the cache file.
+  if(Nwrite > 0){
+    // Write the event header.
+    cacheOutputFile << Nwrite << G4endl;
+    // Write the reaction-product tracking points.
+    for(G4int i = 0; i < Nwrite; i++){
+      // Write this ion trajectory point.
+      cacheOutputFile << std::fixed << std::setprecision(4) 
+		      << std::right << std::setw(12)
+		      << x[i] << std::setw(12)
+		      << y[i] << std::setw(12)
+		      << z[i]
+		      << std::setprecision(6) << std::setw(12)
+		      << bx[i] << std::setw(12)
+		      << by[i] << std::setw(12)
+		      << bz[i]
+		      << std::setprecision(4) << std::setw(12)
+		      << t[i]
+		      << G4endl;
+    }
+    //Write the S800 data.
     cacheOutputFile << std::fixed << std::setprecision(8) << std::right << std::setw(20)
 		    << primaryVertexInfo->GetATA() << std::setw(20)
 		    << primaryVertexInfo->GetBTA() << std::setw(20)
 		    << primaryVertexInfo->GetDTA() << std::setw(20)
 		    << primaryVertexInfo->GetYTA() << std::setw(20) << G4endl;
   }
-  
- 
 }
 // --------------------------------------------------
 void EventAction::writeGEBHeader(GEBDATA* gd){
@@ -1126,6 +1177,7 @@ void EventAction::openCacheOutputFile(G4String FileName)
   } else {
     G4cout << "\nOpened output file: " << outFileName << G4endl;
     cacheOut = true;
+    allS800 = true;
   }
   return;
 }

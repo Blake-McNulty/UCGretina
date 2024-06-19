@@ -632,8 +632,7 @@ void EventAction::writeCache(TrackerIonHitsCollection* ionCollection){
     if( !(*ionCollection)[i]->GetParticleID().contains("[")
 	&& reactionOccurence &&!emissionOccurence) {
       emissionOccurence = true;
-      timeOffset = (*ionCollection)[i-1]->GetTime()
-	         + (*ionCollection)[i-1]->GetDeltaTime();
+      timeOffset = (*ionCollection)[i-1]->GetTime();
       continue; // This is a particle change step, at the same position
                 // as the next one. We don't write this one.
     }

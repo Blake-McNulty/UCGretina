@@ -604,6 +604,16 @@ void EventAction::writeCache(TrackerIonHitsCollection* ionCollection){
   PrimaryVertexInformation* primaryVertexInfo
     = (PrimaryVertexInformation*)evt->GetPrimaryVertex()->GetUserInformation();
 
+  // If the reaction product doesn't exit the target, the S800 information
+  // will all be nan, and we reject this event.
+  if(std::isnan(primaryVertexInfo->GetATA())){
+    G4cerr << "Warning: an event did not generate an entry in the cache file."
+	   << G4endl
+	   << "         The reaction product did not exit the target."
+	   << G4endl;
+    return;
+  }
+    
   // Process reaction-product tracking points
   G4int Npoints = ionCollection->entries();
   G4bool reactionOccurence = false;
@@ -694,11 +704,19 @@ void EventAction::writeCache(TrackerIonHitsCollection* ionCollection){
 		      << G4endl;
     }
     //Write the S800 data.
-    cacheOutputFile << std::fixed << std::setprecision(8) << std::right << std::setw(20)
+    cacheOutputFile << std::fixed << std::setprecision(15)
+		    << std::right << std::setw(20)
 		    << primaryVertexInfo->GetATA() << std::setw(20)
 		    << primaryVertexInfo->GetBTA() << std::setw(20)
 		    << primaryVertexInfo->GetDTA() << std::setw(20)
 		    << primaryVertexInfo->GetYTA() << std::setw(20) << G4endl;
+  } else {
+    // This should never happen, since the hit collection should be empty.
+    // Right?
+    G4cerr << "Warning: an event did not generate an entry in the cache file."
+	   << G4endl
+	   << "         There were no tracking points in the target."
+	   << G4endl;
   }
 }
 // --------------------------------------------------

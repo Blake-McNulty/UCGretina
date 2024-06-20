@@ -305,7 +305,8 @@ void PrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
 	}
 
 	cacheFile >> ata >> bta >> dta >> yta;
-	//	G4cout << ata << std::setw(12) << bta << std::setw(12) << dta << std::setw(12) << yta << std::setw(12) << G4endl;
+	cacheFile.getline(currentLine,1000);
+        //	G4cout << ata << std::setw(12) << bta << std::setw(12) << dta << std::setw(12) << yta << std::setw(12) << G4endl;
       }
       //G4FourVector r = (ata, bta, dta, yta);
       // Projectile-frame gamma-ray energy
@@ -327,6 +328,13 @@ void PrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
       gDir.setTheta(pLab.theta());
       gDir.setPhi(pLab.phi());
 
+      //      G4cout << "emission Pos = " << emissionPos
+      //	     << ", emission Beta = " << emissionBeta
+      //	     << ", emission Time = " << emissionTime
+      //	     << ", gDir = " << gDir
+      //	     << ", pLab.e = " << pLab.e()
+      //	     << G4endl;
+      
       // Set the particle gun parameters.
       particleGun->SetParticleDefinition(particleTable->FindParticle("gamma"));
       particleGun->SetParticleMomentumDirection(gDir);

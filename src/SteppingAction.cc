@@ -157,7 +157,7 @@ void SteppingAction::UserSteppingAction(const G4Step* aStep)
   }
   // Warn when incoming beam particles hit something other than the target.
   if( aStep->GetTrack()->GetDefinition()->GetParticleType() == "nucleus" 
-      && ( aStep->GetTrack()->GetParentID() == 0 || eventAction->AllS800() )
+      && aStep->GetTrack()->GetParentID() == 0
       && aStep->GetPostStepPoint()->GetStepStatus() != fWorldBoundary ){
 
     // get the final volume of the current step

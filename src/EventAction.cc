@@ -2,6 +2,7 @@
 #include "RunAction.hh"
 
 #include "G4Timer.hh"
+//#include <cstdio>
 extern G4Timer Timerintern;
 
 EventAction::EventAction()
@@ -601,6 +602,7 @@ void EventAction::EndOfEventAction(const G4Event* ev)
 }
 //---------------------------------------------------
 void EventAction::writeCache(TrackerIonHitsCollection* ionCollection){
+
   PrimaryVertexInformation* primaryVertexInfo
     = (PrimaryVertexInformation*)evt->GetPrimaryVertex()->GetUserInformation();
 
@@ -646,7 +648,7 @@ void EventAction::writeCache(TrackerIonHitsCollection* ionCollection){
       continue; // This is a particle change step, at the same position
                 // as the next one. We don't write this one.
     }
-    // Either the reaction has happened, or it happens is the last
+    // Either the reaction has happened, or it happens as the last
     // step in the target.
     if(reactionOccurence || (Nwrite == 0 && i == Npoints-1) ) {
       G4ThreeVector betaVector = G4ThreeVector(0,0,1);
@@ -686,10 +688,15 @@ void EventAction::writeCache(TrackerIonHitsCollection* ionCollection){
   // Write this event to the cache file.
   if(Nwrite > 0){
     // Write the event header.
+#ifdef CACHETEXT
     cacheOutputFile << Nwrite << G4endl;
+#else
+    fwrite(&Nwrite, sizeof(G4int), 1, cacheOutputFile);
+#endif
     // Write the reaction-product tracking points.
     for(G4int i = 0; i < Nwrite; i++){
       // Write this ion trajectory point.
+#ifdef CACHETEXT
       cacheOutputFile << std::fixed << std::setprecision(4) 
 		      << std::right << std::setw(12)
 		      << x[i] << std::setw(12)
@@ -702,7 +709,19 @@ void EventAction::writeCache(TrackerIonHitsCollection* ionCollection){
 		      << std::setprecision(4) << std::setw(12)
 		      << t[i]
 		      << G4endl;
+#else
+      CTP tp;
+      tp.x = x[i];
+      tp.y = y[i];
+      tp.z = z[i];
+      tp.bx = bx[i];
+      tp.by = by[i];
+      tp.bz = bz[i];
+      tp.t = t[i];
+      fwrite(&tp, sizeof(tp), 1, cacheOutputFile);
+#endif
     }
+#ifdef CACHETEXT
     //Write the S800 data.
     cacheOutputFile << std::fixed << std::setprecision(15)
 		    << std::right << std::setw(20)
@@ -710,7 +729,16 @@ void EventAction::writeCache(TrackerIonHitsCollection* ionCollection){
 		    << primaryVertexInfo->GetBTA() << std::setw(20)
 		    << primaryVertexInfo->GetDTA() << std::setw(20)
 		    << primaryVertexInfo->GetYTA() << std::setw(20) << G4endl;
-  } else {
+#else
+    CS s8;
+    s8.ata = primaryVertexInfo->GetATA();
+    s8.bta = primaryVertexInfo->GetBTA();
+    s8.dta = primaryVertexInfo->GetDTA();
+    s8.yta = primaryVertexInfo->GetYTA();
+    fwrite(&s8, sizeof(s8), 1, cacheOutputFile);
+#endif
+  }
+  else {
     // This should never happen, since the hit collection should be empty.
     // Right?
     G4cerr << "Warning: an event did not generate an entry in the cache file."
@@ -1187,40 +1215,71 @@ void EventAction::SetCrystalXforms(){
 void EventAction::openCacheOutputFile(G4String FileName)
 {
   cacheOutputFileName = FileName;
+#ifdef CACHETEXT
   if (!cacheOutputFile.is_open()) cacheOutputFile.open(cacheOutputFileName.c_str());
   if (!cacheOutputFile.is_open()){
-    G4cout<< "ERROR opening cache output file." << G4endl;
+    G4err << "ERROR opening cache output file." << G4endl;
     cacheOut = false;
   } else {
-    G4cout << "\nOpened output file: " << outFileName << G4endl;
+    G4cout << "\nOpened cache output file: " << outFileName << G4endl;
     cacheOut = true;
     allS800 = true;
   }
+#else
+  cacheOutputFile = fopen(cacheOutputFileName.c_str(), "wb");
+  if (cacheOutputFile == NULL) {
+    G4cerr << "Could not open output file" << G4endl;
+    exit(EXIT_FAILURE);
+  } else {
+    G4cout << "\nOpened cache output file: " << outFileName << G4endl;
+    cacheOut = true;
+    allS800 = true;
+  }
+#endif
   return;
 }
 //-----------------------------------------------------
 void EventAction::closeCacheOutputFile()
 {
+#ifdef CACHETEXT
   cacheOutputFile.close();
+#else
+  fclose(cacheOutputFile);
+#endif
   return;
 }
 //----------------------------------------------------
 void EventAction::openCacheInputFile(G4String FileName)
 {
   cacheInputFileName = FileName;
+#ifdef CACHETEXT
   if (!cacheInputFile.is_open()) cacheInputFile.open(cacheInputFileName.c_str());
   if (!cacheInputFile.is_open()){
     G4cout<< "ERROR opening cache input file." << G4endl;
     cacheIn = false;
   } else {
-    G4cout << "\nOpened input file: " << cacheInputFileName << G4endl;
+    G4cout << "\nOpened cache input file: " << cacheInputFileName << G4endl;
     cacheIn = true;
   }
+#else
+  cacheInputFile = fopen(cacheInputFileName.c_str(), "rb");
+  if (cacheInputFile == NULL) {
+    G4cerr << "Could not open cache input file." << G4endl;
+    exit(EXIT_FAILURE);
+  } else {
+    G4cout << "Opened cache input file: " << cacheInputFileName << G4endl;
+    cacheIn = true;
+  }
+#endif
   return;
 }
 //-----------------------------------------------------
 void EventAction::closeCacheInputFile()
 {
+#ifdef CACHETEXT
   cacheInputFile.close();
+#else
+  fclose(cacheInputFile);
+#endif
   return;
 }

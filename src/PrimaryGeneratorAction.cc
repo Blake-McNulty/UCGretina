@@ -1,5 +1,5 @@
 #include "PrimaryGeneratorAction.hh"
-
+#include <cstdio>
 PrimaryGeneratorAction::PrimaryGeneratorAction(DetectorConstruction *detector, Incoming_Beam* BI, Outgoing_Beam* BO): BeamIn(BI), BeamOut(BO), myDetector(detector)
 {
   SetInBeam();
@@ -240,9 +240,10 @@ void PrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
       anEvent->GetPrimaryVertex()->SetUserInformation(primaryVertexInfo);
 
     }
+
   else if(cache)
     {
-      char currentLine[1000];
+      //char currentLine[1000];
       G4int Npoints;
       G4double x[1000];
       G4double y[1000];
@@ -257,57 +258,91 @@ void PrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
       G4ThreeVector emissionPos;
       G4ThreeVector emissionBeta;
 
+#ifdef CACHETEXT
       std::ifstream& cacheFile = eventAction->getCacheInputFile();
-      if(cacheFile.is_open()) {
-	cacheFile >> Npoints;
-	//	G4cout << Npoints << G4endl;
-
-	G4double halflife = eventAction->GetCacheHalfLife(); // ps
-        G4double lifetime = halflife/log(2)/ps;
-        G4double emissionTime = CLHEP::RandExponential::shoot(lifetime);
-	for(int i = 0; i < Npoints; i++) {
-	  cacheFile >> x[i] >> y[i] >> z[i] >> bx[i] >> by[i] >> bz[i] >> t[i];
-	  // G4cout << x[i] << std::setw(12)
-	  // 	 << y[i] << std::setw(12)
-	  // 	 << z[i] << std::setw(12)
-	  // 	 << bx[i] << std::setw(12)
-	  // 	 << by[i] << std::setw(12)
-	  // 	 << bz[i] << std::setw(12)
-	  // 	 << t[i] << std::setw(12) << G4endl;
-	  cacheFile.getline(currentLine,1000);
-	  if(!emissionSet){
-	    if(lifetime > 0){
-	      if(t[i] > emissionTime){
-		G4ThreeVector x1 = G4ThreeVector(x[i-1], y[i-1], z[i-1]);
-		G4ThreeVector x2 = G4ThreeVector(x[i],   y[i],   z[i]);
-		emissionPos = (x1*(emissionTime-t[i-1])
-			       + x2*(t[i]-emissionTime))/(t[i] - t[i-1]);
-		G4ThreeVector beta1 = G4ThreeVector(bx[i-1], by[i-1], bz[i-1]);
-		G4ThreeVector beta2 = G4ThreeVector(bx[i],   by[i],   bz[i]);
-		emissionBeta = (beta1*(emissionTime-t[i-1])
-				+ beta2*(t[i]-emissionTime))/(t[i] - t[i-1]);
-		emissionSet = true;
-	      }
-	    } else {
-	      emissionPos = G4ThreeVector(x[0],   y[0],  z[0]);
-	      emissionBeta = G4ThreeVector(bx[0], by[0], bz[0]);
+      cacheFile >> Npoints;
+      //	G4cout << Npoints << G4endl;
+#else
+      std::FILE* cacheFile = eventAction->getCacheInputFile();
+      G4int size = fread(&Npoints, sizeof(G4int), 1, cacheFile);
+      if(size != sizeof(G4int)) {
+	G4cerr << "Error reading file content: data read(Npoints) does not match expected size" << G4endl;
+	exit(EXIT_FAILURE);
+      }
+#endif
+      G4double halflife = eventAction->GetCacheHalfLife(); // ps
+      G4double lifetime = halflife/log(2)/ps;
+      G4double emissionTime = CLHEP::RandExponential::shoot(lifetime);
+      for(int i = 0; i < Npoints; i++) {
+#ifdef CACHETEXT
+	cacheFile >> x[i] >> y[i] >> z[i] >> bx[i] >> by[i] >> bz[i] >> t[i];
+	// G4cout << x[i] << std::setw(12)
+	// 	 << y[i] << std::setw(12)
+	// 	 << z[i] << std::setw(12)
+	// 	 << bx[i] << std::setw(12)
+	// 	 << by[i] << std::setw(12)
+	// 	 << bz[i] << std::setw(12)
+	// 	 << t[i] << std::setw(12) << G4endl;
+	cacheFile.getline(currentLine,1000);
+#else
+	CTP inputPosData;
+	size = fread(&inputPosData, sizeof(inputPosData), 1, cacheFile);
+	if(size != sizeof(inputPosData)) {
+	  G4cerr << "Error reading file content: data read(inputPosData) does not match expected size" << G4endl;
+	  exit(EXIT_FAILURE);
+	}
+	x[i] = inputPosData.x;
+	y[i] = inputPosData.y;
+	z[i] = inputPosData.z;
+	bx[i] = inputPosData.bx;
+	by[i] = inputPosData.by;
+	bz[i] = inputPosData.bz;
+	t[i] = inputPosData.t;
+#endif
+	if(!emissionSet){
+	  if(lifetime > 0){
+	    if(t[i] > emissionTime){
+	      G4ThreeVector x1 = G4ThreeVector(x[i-1], y[i-1], z[i-1]);
+	      G4ThreeVector x2 = G4ThreeVector(x[i],   y[i],   z[i]);
+	      emissionPos = (x1*(emissionTime-t[i-1])
+			     + x2*(t[i]-emissionTime))/(t[i] - t[i-1]);
+	      G4ThreeVector beta1 = G4ThreeVector(bx[i-1], by[i-1], bz[i-1]);
+	      G4ThreeVector beta2 = G4ThreeVector(bx[i],   by[i],   bz[i]);
+	      emissionBeta = (beta1*(emissionTime-t[i-1])
+			      + beta2*(t[i]-emissionTime))/(t[i] - t[i-1]);
 	      emissionSet = true;
 	    }
+	  } else {
+	    emissionPos = G4ThreeVector(x[0],   y[0],  z[0]);
+	    emissionBeta = G4ThreeVector(bx[0], by[0], bz[0]);
+	    emissionSet = true;
 	  }
 	}
-	// Downstream of the target, we extrapolate.
-	if(!emissionSet){
-	  emissionBeta = G4ThreeVector(bx[Npoints-1], by[Npoints-1], bz[Npoints-1]);
-	  G4double c = 0.299792458; // mm/ps
-	  emissionPos = G4ThreeVector(x[Npoints-1], y[Npoints-1], z[Npoints-1])
-	    + emissionBeta*c*(emissionTime-t[Npoints-1]);
-	  emissionSet = true;
-	}
-
-	cacheFile >> ata >> bta >> dta >> yta;
-	cacheFile.getline(currentLine,1000);
-        //	G4cout << ata << std::setw(12) << bta << std::setw(12) << dta << std::setw(12) << yta << std::setw(12) << G4endl;
       }
+      // Downstream of the target, we extrapolate.
+      if(!emissionSet){
+	emissionBeta = G4ThreeVector(bx[Npoints-1], by[Npoints-1], bz[Npoints-1]);
+	G4double c = 0.299792458; // mm/ps
+	emissionPos = G4ThreeVector(x[Npoints-1], y[Npoints-1], z[Npoints-1])
+	  + emissionBeta*c*(emissionTime-t[Npoints-1]);
+	emissionSet = true;
+      }
+#ifdef CACHETEXT
+      cacheFile >> ata >> bta >> dta >> yta;
+      cacheFile.getline(currentLine,1000);
+      //	G4cout << ata << std::setw(12) << bta << std::setw(12) << dta << std::setw(12) << yta << std::setw(12) << G4endl;
+#else
+      CS inputS8Data;
+      size =  fread(&inputS8Data, sizeof(inputS8Data), 1, cacheFile);
+      if(size != sizeof(inputS8Data)) {
+	G4cerr << "Error reading file content: data read(inputS8Data) does not match expected size" << G4endl;
+	exit(EXIT_FAILURE);
+      }
+      ata = inputS8Data.ata;
+      bta = inputS8Data.bta;
+      dta = inputS8Data.dta;
+      yta = inputS8Data.yta;
+#endif
       //G4FourVector r = (ata, bta, dta, yta);
       // Projectile-frame gamma-ray energy
       G4double e = eventAction->GetCacheGammaEnergy();

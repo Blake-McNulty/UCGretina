@@ -1,5 +1,5 @@
 #include "RunAction.hh"
-
+#include "cache.hh"
 #include "G4Timer.hh"
 extern G4Timer Timer;
 
@@ -42,20 +42,33 @@ void RunAction::BeginOfRunAction(const G4Run* run)
     G4cout << " Writing Mode 2 output to " 
 	   << evaction->GetMode2FileName() << G4endl;
   if(evaction->CacheOut()){
-    std::ofstream &cacheOutputFile = evaction->getCacheOutputFile();
-    cacheOutputFile << run->GetNumberOfEventToBeProcessed() << G4endl;
+#ifdef CACHETEXT
+    std::ofstream& cacheOutputFile = evaction->getCacheOutputFile(); 
+    G4int Nevents = run->GetNumberOfEventToBeProcessed();
+    cacheOutputFile << Nevents << G4endl;
+#else
+    std::FILE* cacheOutputFile = evaction->getCacheOutputFile(); 
+    G4int Nevents = run->GetNumberOfEventToBeProcessed();
+    fwrite(&Nevents, sizeof(G4int), 1, cacheOutputFile);
+#endif
   }
   if(evaction->CacheIn()){
-      std::ifstream &cacheInputFile = evaction->getCacheInputFile();
-      G4int Nevents;
-      cacheInputFile >> Nevents;
-      G4cout << Nevents << " events in cache file." << G4endl;
-      if (Nevents < run->GetNumberOfEventToBeProcessed()){
-	G4cerr << "Error: There are only " << Nevents
-	       << " events in the cache file and the user has requested "
-	       << run->GetNumberOfEventToBeProcessed() << G4endl;
-	exit(EXIT_FAILURE);
-      }
+#ifdef CACHETEXT
+    std::ifstream& cacheInputFile = evaction->getCacheInputFile();
+    G4int Nevents;
+    cacheInputFile >> Nevents;
+#else
+    std::FILE* cacheInputFile = evaction->getCacheInputFile();
+    G4int Nevents;
+    fscanf(cacheInputFile, "%d ", &Nevents);
+#endif
+    G4cout << Nevents << " events in cache file." << G4endl;
+    if (Nevents < run->GetNumberOfEventToBeProcessed()){
+      G4cerr << "Error: There are only " << Nevents
+	     << " events in the cache file and the user has requested "
+	     << run->GetNumberOfEventToBeProcessed() << G4endl;
+      exit(EXIT_FAILURE);
+    }
   }
   Timer.Start();
 }

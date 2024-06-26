@@ -1218,7 +1218,7 @@ void EventAction::openCacheOutputFile(G4String FileName)
 #ifdef CACHETEXT
   if (!cacheOutputFile.is_open()) cacheOutputFile.open(cacheOutputFileName.c_str());
   if (!cacheOutputFile.is_open()){
-    G4err << "ERROR opening cache output file." << G4endl;
+    G4cerr << "ERROR opening cache output file." << G4endl;
     cacheOut = false;
   } else {
     G4cout << "\nOpened cache output file: " << outFileName << G4endl;

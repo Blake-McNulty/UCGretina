@@ -243,7 +243,9 @@ void PrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
 
   else if(cache)
     {
-      //char currentLine[1000];
+#ifdef CACHETEXT
+      char currentLine[1000];
+#endif
       G4int Npoints;
       G4double x[1000];
       G4double y[1000];
@@ -261,12 +263,18 @@ void PrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
 #ifdef CACHETEXT
       std::ifstream& cacheFile = eventAction->getCacheInputFile();
       cacheFile >> Npoints;
+      if(cacheFile.eof()) {
+	G4cerr << "Error reading trajectory header from cache file: End of File."
+	       << G4endl;
+	exit(EXIT_FAILURE);
+      }
       //	G4cout << Npoints << G4endl;
 #else
       std::FILE* cacheFile = eventAction->getCacheInputFile();
       G4int size = fread(&Npoints, sizeof(G4int), 1, cacheFile);
-      if(size != sizeof(G4int)) {
-	G4cerr << "Error reading file content: data read(Npoints) does not match expected size" << G4endl;
+      if(size != 1) {
+	G4cerr << "Error reading trajectory header from cache file: size mismatch."
+	       << G4endl;
 	exit(EXIT_FAILURE);
       }
 #endif
@@ -287,8 +295,9 @@ void PrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
 #else
 	CTP inputPosData;
 	size = fread(&inputPosData, sizeof(inputPosData), 1, cacheFile);
-	if(size != sizeof(inputPosData)) {
-	  G4cerr << "Error reading file content: data read(inputPosData) does not match expected size" << G4endl;
+	if(size != 1) {
+	  G4cerr << "Error reading trajectory point from cache file."
+		 << G4endl;
 	  exit(EXIT_FAILURE);
 	}
 	x[i] = inputPosData.x;
@@ -334,7 +343,7 @@ void PrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
 #else
       CS inputS8Data;
       size =  fread(&inputS8Data, sizeof(inputS8Data), 1, cacheFile);
-      if(size != sizeof(inputS8Data)) {
+      if(size != 1) {
 	G4cerr << "Error reading file content: data read(inputS8Data) does not match expected size" << G4endl;
 	exit(EXIT_FAILURE);
       }

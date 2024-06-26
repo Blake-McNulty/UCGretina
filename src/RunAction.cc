@@ -60,7 +60,11 @@ void RunAction::BeginOfRunAction(const G4Run* run)
 #else
     std::FILE* cacheInputFile = evaction->getCacheInputFile();
     G4int Nevents;
-    fscanf(cacheInputFile, "%d ", &Nevents);
+   int size = fread(&Nevents, sizeof(G4int), 1, cacheInputFile);
+    if(size != 1) {
+	G4cerr << "Error reading file content: data read(Nevents) does not match expected size" << G4endl;
+	exit(EXIT_FAILURE);
+      }
 #endif
     G4cout << Nevents << " events in cache file." << G4endl;
     if (Nevents < run->GetNumberOfEventToBeProcessed()){
